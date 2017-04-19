@@ -14,7 +14,8 @@ public class ClusterFile
 		String base_dir=get_base_dir(file);
 		if(base_dir.equals("")!=true)
 		{			
-			String target_fn="./combined.txt";
+			//String target_fn="./combined.txt";
+			String target_fn=get_final_file(file);
 			//把目标文件清空
 			clear_file_content(target_fn);
 			cluster_in_one(base_dir,target_fn);
@@ -33,11 +34,32 @@ public class ClusterFile
 			if(first_pos!=-1)
 			{
 				//确定结束双引号的位置
-				int last_pos=content.indexOf("\"",first_pos+keyword.length());
+				int last_pos=content.indexOf("\");",first_pos+keyword.length());
 				base_dir=content.substring(first_pos+keyword.length(),last_pos);
 			}
 		}
+		cfg_input.close();
 		return base_dir;
+	}
+	
+	public static String get_final_file(File file) throws Exception
+	{
+		Scanner cfg_input=new Scanner(file);
+		String keyword="define(\"FINAL_FILE\",\"";
+		String param_file="test.txt";
+		while(cfg_input.hasNext())
+		{
+			String content=cfg_input.nextLine();
+			int first_pos=content.indexOf(keyword);
+			if(first_pos!=-1)
+			{
+				//确定结束双引号的位置
+				int last_pos=content.indexOf("\");",first_pos+keyword.length());
+				param_file=content.substring(first_pos+keyword.length(),last_pos);
+			}
+		}
+		cfg_input.close();
+		return param_file;
 	}
 	
 	public static void cluster_in_one(String base_dir,String combined_file) throws Exception//将目录下的所有文件写入到一个文件
@@ -95,7 +117,12 @@ public class ClusterFile
 	public static byte[] clear_html(byte[] byte_content) throws UnsupportedEncodingException
 	{
 		String ori_content=new String(byte_content,"UTF-8");
-		String p_start_kw="<P",p_end_kw=">";		
+		ori_content=long_html_tag("<P",">",ori_content);
+		ori_content=long_html_tag("<FONT",">",ori_content);
+		ori_content=long_html_tag("<SPAN",">",ori_content);
+		ori_content=long_html_tag("<SCRIPT","</SCRIPT>",ori_content);
+		ori_content=long_html_tag("<A",">",ori_content);
+		/*String p_start_kw="<P",p_end_kw=">";		
 		int first_pos=-1,last_pos=-1,section_pos=0;
 		for(;true;)//找到奇怪的<P开始的标签
 		{
@@ -108,15 +135,47 @@ public class ClusterFile
 			String special_p=ori_content.substring(first_pos,last_pos+1);			
 			ori_content=ori_content.replace(special_p,"");
 			section_pos=last_pos;
-		}
+		}*/
 		
 		ori_content=ori_content.replace("<P></P>","\r\n");
 		ori_content=ori_content.replace("</P>","\r\n");
+		ori_content=ori_content.replace("<p>","");
+		ori_content=ori_content.replace("</p>","\r\n");
 		ori_content=ori_content.replace("<BR>","\r\n");
+		ori_content=ori_content.replace("<SUB>","");
+		ori_content=ori_content.replace("</SUB>","");
+		ori_content=ori_content.replace("<SUP>","");
+		ori_content=ori_content.replace("</SUP>","");		
+		ori_content=ori_content.replace("<DIV>","");
+		ori_content=ori_content.replace("</DIV>","");
+		ori_content=ori_content.replace("</FONT>","");
+		ori_content=ori_content.replace("</SPAN>","");
+		ori_content=ori_content.replace("</A>","");
 		
 		ori_content=ori_content.replace("&nbsp;"," ");
-		
+		ori_content=ori_content.replace(" ","");//去除空格
+		ori_content=ori_content.replace("\t","");
+		ori_content=ori_content.replace("　","");
 		return ori_content.getBytes();
+	}
+	
+	public static String long_html_tag(String p_start_kw,String p_end_kw,String content)
+	{
+		//String p_start_kw="<P",p_end_kw=">";		
+		int first_pos=-1,last_pos=-1,section_pos=0;
+		for(;true;)//找到奇怪的<P开始的标签
+		{
+			first_pos=content.indexOf(p_start_kw,section_pos);
+			if(first_pos==-1)
+				break;
+			last_pos=content.indexOf(p_end_kw,first_pos);
+			if(last_pos==-1)
+				break;
+			String special_p=content.substring(first_pos,last_pos+1);			
+			content=content.replace(special_p,"");
+			section_pos=last_pos;
+		}
+		return content;
 	}
 	
 	/** 清除目标文件内容,仅限于程序刚开始时使用
